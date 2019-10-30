@@ -78,6 +78,11 @@ impl Integer {
     pub fn from_f64(v: f64) -> Option<Self> {
         BigInt::from_f64(v).map(Integer)
     }
+
+    #[inline]
+    pub fn gcd(&self, other: &Self) -> Self {
+        Integer(num_integer::Integer::gcd(&self.0, &other.0))
+    }
 }
 
 impl From<i32> for Integer {
@@ -90,6 +95,13 @@ impl From<i32> for Integer {
 impl From<isize> for Integer {
     #[inline]
     fn from(s: isize) -> Self {
+        Integer(BigInt::from(s))
+    }
+}
+
+impl From<u8> for Integer {
+    #[inline]
+    fn from(s: u8) -> Self {
         Integer(BigInt::from(s))
     }
 }
@@ -301,6 +313,11 @@ impl Rational {
     }
 
     #[inline]
+    pub fn numer(&self) -> &Integer {
+        unsafe { ::std::mem::transmute(self.0.numer()) }
+    }
+
+    #[inline]
     pub fn denom(&self) -> &Integer {
         unsafe { ::std::mem::transmute(self.0.denom()) }
     }
@@ -407,6 +424,52 @@ pub mod ops {
         fn pow_assign(&mut self, rhs: u32) {
             // FIXME: make it efficient
             self.0 = num_traits::Pow::pow(&self.0, rhs);
+        }
+    }
+}
+
+pub mod rand {
+    use super::Integer;
+    use std::marker::PhantomData;
+
+    pub struct RandState<'a>{
+        _marker: PhantomData<&'a ()>,
+    }
+
+    impl<'a> RandState<'a> {
+        pub fn new() -> Self {
+            unsafe { libc::srand(libc::time(std::ptr::null_mut()) as _) };
+            RandState { _marker: PhantomData }
+        }
+
+        pub fn borrow_mut(&self) -> &Self {
+            self
+        }
+
+        pub fn bits(&mut self, bits: u32) -> u32 {
+            assert!(bits <= 32);
+            (unsafe { libc::rand() } as u32) & (u32::max_value() >> (32 - bits))
+        }
+
+        pub fn seed(&mut self, seed: &Integer) {
+            unsafe { libc::srand(seed.to_f64() as _)}
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn bits() {
+        let mut rand = rand::RandState::new();
+        for bits in 1..32 {
+            for _ in 0..100 {
+                let r = rand.bits(bits);
+                let max = 1 << bits;
+                assert!(max > r, "{} > {}", max, r);
+            }
         }
     }
 }
