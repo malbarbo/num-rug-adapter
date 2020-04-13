@@ -401,7 +401,7 @@ impl Assign<&Rational> for (&mut Rational, &mut Integer) {
 }
 
 pub mod ops {
-    use super::Integer;
+    use super::{Integer, Rational};
 
     pub trait Pow<Rhs> {
         type Output;
@@ -424,6 +424,23 @@ pub mod ops {
         fn pow_assign(&mut self, rhs: u32) {
             // FIXME: make it efficient
             self.0 = num_traits::Pow::pow(&self.0, rhs);
+        }
+    }
+
+    pub trait NegAssign {
+        fn neg_assign(&mut self);
+    }
+
+    impl NegAssign for Integer {
+        fn neg_assign(&mut self) {
+            self.0 = -std::mem::replace(self, Integer::new()).0;
+        }
+    }
+
+    impl NegAssign for Rational {
+        #[inline]
+        fn neg_assign(&mut self) {
+            self.0 = -std::mem::replace(self, Rational::new()).0;
         }
     }
 }
@@ -460,6 +477,7 @@ pub mod rand {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use super::ops::NegAssign;
 
     #[test]
     fn bits() {
@@ -471,5 +489,21 @@ mod tests {
                 assert!(max > r, "{} > {}", max, r);
             }
         }
+    }
+
+    #[test]
+    fn neg_rational() {
+        let mut x = Rational::from_f64(5.0).unwrap();
+        let x_neg = Rational::from_f64(-5.0).unwrap();
+        x.neg_assign();
+        assert_eq!(x, x_neg);
+    }
+
+    #[test]
+    fn neg_integer() {
+        let mut x = Integer::from(5);
+        let x_neg = Integer::from(-5);
+        x.neg_assign();
+        assert_eq!(x, x_neg);
     }
 }
