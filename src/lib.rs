@@ -8,6 +8,156 @@ use std::ops::*;
 
 use std::str::FromStr;
 
+// TODO: Write more tests.
+
+/// This macro allows the implementation of the trait `From` for the type `U`
+/// from_trait_impl!(U, type_name, from_id, T0 T1 ... Tn);
+//#[macro_export]
+macro_rules! from_trait_impl {
+    ($ty_for:ty, $ty_output_expr:expr, $ty_id:ident, $($t:ty)*) => ($(
+        impl From<$t> for $ty_for {
+            #[inline]
+            fn from(s: $t) -> Self {
+                $ty_output_expr($ty_id::from(s))
+            }
+        }
+    )*)
+}
+
+/// partial_eq_trait_impl!(for_who, type_name, T0 T1 .. Tn);
+macro_rules! partial_eq_trait_impl {
+    ($ty_for:ty, $ty_id:ident, $($t:ty)*) => ($(
+        impl PartialEq<$t> for $ty_for {
+            #[inline]
+            fn eq(&self, other: &$t) -> bool {
+                self.0 == $ty_id::from(*other)
+            }
+        }
+
+        impl PartialEq<$ty_for> for $t {
+            #[inline]
+            fn eq(&self, other: &$ty_for) -> bool {
+                $ty_id::from(*self) == other.0
+            }
+        }
+    )*)
+}
+
+/// partial_ord_trait_impl!(for_who, type_name, T0 T1 .. Tn);
+macro_rules! partial_ord_trait_impl {
+    ($ty_for:ty, $ty_id:ident, $($t:ty)*) => ($(
+        impl PartialOrd<$t> for $ty_for {
+            #[inline]
+            fn partial_cmp(&self, other: &$t) -> Option<Ordering> {
+                self.0.partial_cmp(&$ty_id::from(*other))
+            }
+        }
+
+        // impl PartialEq<$ty_for> for $t {
+        //     #[inline]
+        //     fn eq(&self, other: &$ty_for) -> bool {
+        //         $ty_id::from(*self) == other.0
+        //     }
+        // }
+    )*)
+}
+
+// FIXME: Find a better name.
+/// ops_trait_impl_by_by!(Trait, Rhs, Lhs, Output, func, ops, struct);
+/// ops_trait_impl_by_int!(Trait, Rhs, Lhs, Output, func, ops, struct);
+macro_rules! ops_trait_impl_ref_ref {
+    ($trait_name:ident, $ty_input_right:ty, $ty_input_left:ty, $ty_output:ty, $func_name:ident, $op:tt, $ty_output_expr:expr) => {
+        impl $trait_name<$ty_input_right> for $ty_input_left {
+            type Output = $ty_output;
+
+            #[inline]
+            fn $func_name(self, other: $ty_input_right) -> Self::Output {
+                $ty_output_expr(&self.0 $op &other.0)
+            }
+        }
+    }
+}
+
+macro_rules! ops_trait_impl_move_ref {
+    ($trait_name:ident, $ty_input_right:ty, $ty_input_left:ty, $ty_output:ty, $func_name:ident, $op:tt, $ty_output_expr:expr) => {
+        impl $trait_name<$ty_input_right> for $ty_input_left {
+            type Output = $ty_output;
+
+            #[inline]
+            fn $func_name(self, other: $ty_input_right) -> Self::Output {
+                $ty_output_expr(self.0 $op &other.0)
+            }
+        }
+    }
+}
+
+macro_rules! ops_trait_impl_move_move {
+    ($trait_name:ident, $ty_input_right:ty, $ty_input_left:ty, $ty_output:ty, $func_name:ident, $op:tt, $ty_output_expr:expr) => {
+        impl $trait_name<$ty_input_right> for $ty_input_left {
+            type Output = $ty_output;
+
+            #[inline]
+            fn $func_name(self, other: $ty_input_right) -> Self::Output {
+                $ty_output_expr(self.0 $op other.0)
+            }
+        }
+    }
+}
+
+macro_rules! ops_trait_impl_move_int {
+    ($trait_name:ident, $ty_input_right:ty, $ty_input_left:ty, $ty_output:ty, $func_name:ident, $op:tt, $ty_output_expr:expr) => {
+        impl $trait_name<$ty_input_right> for $ty_input_left {
+            type Output = $ty_output;
+
+            #[inline]
+            fn $func_name(self, other: $ty_input_right) -> Self::Output {
+                $ty_output_expr(self.0 $op other)
+            }
+        }
+    }
+}
+
+// FIXME: Find a better name.
+/// opsa_trait_impl_by!(Trait, Rhs, Lhs, func, ops);
+/// opsa_trait_impl_int!(Trait, Rhs, Lhs, func, ops);
+macro_rules! opsa_trait_impl_ref {
+    ($trait_name:ident, $ty_input_right:ty, $ty_input_left:ty, $func_name:ident, $op:tt) => {
+        impl $trait_name<$ty_input_right> for $ty_input_left {
+
+            #[inline]
+            fn $func_name(&mut self, other: $ty_input_right) {
+                self.0 $op &other.0;
+            }
+        }
+    }
+}
+
+macro_rules! opsa_trait_impl_move {
+    ($trait_name:ident, $ty_input_right:ty, $ty_input_left:ty, $func_name:ident, $op:tt) => {
+        impl $trait_name<$ty_input_right> for $ty_input_left {
+
+            #[inline]
+            fn $func_name(&mut self, other: $ty_input_right) {
+                self.0 $op other.0;
+            }
+        }
+    }
+}
+
+macro_rules! opsa_trait_impl_int {
+    ($trait_name:ident, $ty_input_right:ty, $ty_input_left:ty, $func_name:ident, $op:tt) => {
+        impl $trait_name<$ty_input_right> for $ty_input_left {
+
+            #[inline]
+            fn $func_name(&mut self, other: $ty_input_right) {
+                self.0 $op other
+            }
+        }
+    }
+}
+
+// Integer
+
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct Integer(BigInt);
 
@@ -18,7 +168,10 @@ impl Integer {
     }
 
     #[inline]
-    pub fn from_str_radix(s: &str, radix: u32) -> Result<Self, ParseBigIntError> {
+    pub fn from_str_radix(
+        s: &str,
+        radix: u32,
+    ) -> Result<Self, ParseBigIntError> {
         BigInt::from_str_radix(s, radix).map(Integer)
     }
 
@@ -52,14 +205,37 @@ impl Integer {
         Integer(self.0.abs())
     }
 
+    // FIXME: Better, fast implementation required.
+    // This is a hacky solution.
+    #[inline]
+    pub fn abs_ref(&self) -> Self {
+        Integer(self.0.abs())
+    }
+
     #[inline]
     pub fn div_rem(&self, other: Self) -> (Self, Self) {
         let (a, b) = num_integer::Integer::div_rem(&self.0, &other.0);
         (Integer(a), Integer(b))
     }
 
+    // FIXME: Better, fast implementation required.
+    // This is a hacky solution.
+    #[inline]
+    pub fn div_rem_ref(&self, other: &Self) -> (Self, Self) {
+        let (a, b) = num_integer::Integer::div_rem(&self.0, &other.0);
+        (Integer(a), Integer(b))
+    }
+
     #[inline]
     pub fn div_rem_floor(&self, other: Self) -> (Self, Self) {
+        let (a, b) = num_integer::Integer::div_mod_floor(&self.0, &other.0);
+        (Integer(a), Integer(b))
+    }
+
+    // FIXME: Better, fast implementation required.
+    // This is a hacky solution.
+    #[inline]
+    pub fn div_rem_floor_ref(&self, other: &Self) -> (Self, Self) {
         let (a, b) = num_integer::Integer::div_mod_floor(&self.0, &other.0);
         (Integer(a), Integer(b))
     }
@@ -83,124 +259,127 @@ impl Integer {
     pub fn gcd(&self, other: &Self) -> Self {
         Integer(num_integer::Integer::gcd(&self.0, &other.0))
     }
-}
 
-impl From<i32> for Integer {
+    // FIXME: Better, fast implementation required.
+    // This is a hacky solution.
     #[inline]
-    fn from(s: i32) -> Self {
-        Integer(BigInt::from(s))
+    pub fn gcd_ref(&self, other: &Self) -> Self {
+        Integer(num_integer::Integer::gcd(&self.0, &other.0))
     }
 }
 
-impl From<isize> for Integer {
+// From.
+from_trait_impl!(Integer, Integer, BigInt, i32 isize u8 u32 usize);
+
+impl From<&Integer> for Integer {
     #[inline]
-    fn from(s: isize) -> Self {
-        Integer(BigInt::from(s))
+    fn from(s: &Integer) -> Self {
+        Integer(s.0.clone())
     }
 }
 
-impl From<u8> for Integer {
-    #[inline]
-    fn from(s: u8) -> Self {
-        Integer(BigInt::from(s))
-    }
+// Operation.
+ops_trait_impl_move_move!(Add, Integer, Integer, Integer, add, +, Integer);
+ops_trait_impl_move_ref!(Add, &Integer, Integer, Integer, add, +, Integer);
+ops_trait_impl_ref_ref!(Add, &Integer, &Integer, Integer, add, +, Integer);
+ops_trait_impl_ref_ref!(Add, Integer, &Integer, Integer, add, +, Integer);
+
+ops_trait_impl_move_move!(Mul, Integer, Integer, Integer, mul, *, Integer);
+ops_trait_impl_move_ref!(Mul, &Integer, Integer, Integer, mul, *, Integer);
+ops_trait_impl_ref_ref!(Mul, &Integer, &Integer, Integer, mul, *, Integer);
+ops_trait_impl_move_int!(Mul, u32, Integer, Integer, mul, *, Integer);
+
+ops_trait_impl_move_move!(Div, Integer, Integer, Integer, div, /, Integer);
+ops_trait_impl_move_ref!(Div, &Integer, Integer, Integer, div, /, Integer);
+ops_trait_impl_ref_ref!(Div, Integer, &Integer, Integer, div, /, Integer);
+
+ops_trait_impl_move_move!(Rem, Integer, Integer, Integer, rem, %, Integer);
+ops_trait_impl_move_ref!(Rem, &Integer, Integer, Integer, rem, %, Integer);
+ops_trait_impl_ref_ref!(Rem, &Integer, &Integer, Integer, rem, %, Integer);
+ops_trait_impl_ref_ref!(Rem, Integer, &Integer, Integer, rem, %, Integer);
+
+ops_trait_impl_move_move!(BitAnd, Integer, Integer, Integer, bitand, &, Integer);
+ops_trait_impl_move_ref!(BitAnd, &Integer, Integer, Integer, bitand, &, Integer);
+ops_trait_impl_ref_ref!(BitAnd, &Integer, &Integer, Integer, bitand, &, Integer);
+ops_trait_impl_ref_ref!(BitAnd, Integer, &Integer, Integer, bitand, &, Integer);
+
+ops_trait_impl_move_move!(BitOr, Integer, Integer, Integer, bitor, |, Integer);
+ops_trait_impl_move_ref!(BitOr, &Integer, Integer, Integer, bitor, |, Integer);
+ops_trait_impl_ref_ref!(BitOr, &Integer, &Integer, Integer, bitor, |, Integer);
+ops_trait_impl_ref_ref!(BitOr, Integer, &Integer, Integer, bitor, |, Integer);
+
+ops_trait_impl_move_move!(BitXor, Integer, Integer, Integer, bitxor, ^, Integer);
+ops_trait_impl_move_ref!(BitXor, &Integer, Integer, Integer, bitxor, ^, Integer);
+ops_trait_impl_ref_ref!(BitXor, &Integer, &Integer, Integer, bitxor, ^, Integer);
+ops_trait_impl_ref_ref!(BitXor, Integer, &Integer, Integer, bitxor, ^, Integer);
+
+// Operation and Assignment.
+opsa_trait_impl_ref!(AddAssign, &Integer, Integer, add_assign, *=);
+opsa_trait_impl_move!(AddAssign, Integer, Integer, add_assign, *=);
+opsa_trait_impl_int!(AddAssign, i64, Integer, add_assign, *=);
+
+opsa_trait_impl_ref!(MulAssign, &Integer, Integer, mul_assign, *=);
+opsa_trait_impl_move!(MulAssign, Integer, Integer, mul_assign, *=);
+opsa_trait_impl_int!(MulAssign, u32, Integer, mul_assign, *=);
+
+// Bit manipulation.
+
+macro_rules! bit_ops_trait_impl {
+    ($ty_for:ty, $ty_output_expr:expr, $($t:ty)*) => ($(
+        impl Shr<$t> for $ty_for {
+            type Output = $ty_for;
+
+            #[inline]
+            fn shr(self, rhs: $t) -> Self::Output {
+                $ty_output_expr(self.0 >> rhs as usize)
+            }
+        }
+
+        impl Shr<$t> for &$ty_for {
+            type Output = $ty_for;
+
+            #[inline]
+            fn shr(self, rhs: $t) -> Self::Output {
+                $ty_output_expr(&self.0 >> rhs as usize)
+            }
+        }
+
+        impl ShrAssign<$t> for $ty_for {
+            #[inline]
+            fn shr_assign(&mut self, rhs: $t) {
+                self.0 >>= rhs as usize;
+            }
+        }
+
+        // TODO: Try to simplify/factorize by Shl/Shr like for Add, Mul, ...
+        impl Shl<$t> for $ty_for {
+            type Output = $ty_for;
+
+            #[inline]
+            fn shl(self, rhs: $t) -> Self::Output {
+                $ty_output_expr(self.0 >> rhs as usize)
+            }
+        }
+
+        impl Shl<$t> for &$ty_for {
+            type Output = $ty_for;
+
+            #[inline]
+            fn shl(self, rhs: $t) -> Self::Output {
+                $ty_output_expr(&self.0 << rhs as usize)
+            }
+        }
+
+        impl ShlAssign<$t> for $ty_for {
+            #[inline]
+            fn shl_assign(&mut self, rhs: $t) {
+                self.0 <<= rhs as usize;
+            }
+        }
+    )*)
 }
 
-impl From<u32> for Integer {
-    #[inline]
-    fn from(s: u32) -> Self {
-        Integer(BigInt::from(s))
-    }
-}
-
-impl From<usize> for Integer {
-    #[inline]
-    fn from(s: usize) -> Self {
-        Integer(BigInt::from(s))
-    }
-}
-
-impl Mul for Integer {
-    type Output = Integer;
-
-    #[inline]
-    fn mul(self, other: Integer) -> Self::Output {
-        Integer(self.0 * other.0)
-    }
-}
-
-impl Mul<u32> for Integer {
-    type Output = Integer;
-
-    #[inline]
-    fn mul(self, other: u32) -> Self::Output {
-        Integer(self.0 * other)
-    }
-}
-
-impl MulAssign<&Integer> for Integer {
-    #[inline]
-    fn mul_assign(&mut self, other: &Integer) {
-        self.0 *= &other.0;
-    }
-}
-
-impl Add for Integer {
-    type Output = Integer;
-
-    #[inline]
-    fn add(self, other: Integer) -> Self::Output {
-        Integer(self.0 + other.0)
-    }
-}
-
-impl Add<&Integer> for &Integer {
-    type Output = Integer;
-
-    #[inline]
-    fn add(self, other: &Integer) -> Self::Output {
-        Integer(&self.0 + &other.0)
-    }
-}
-
-impl AddAssign<i64> for Integer {
-    #[inline]
-    fn add_assign(&mut self, other: i64) {
-        self.0 += other;
-    }
-}
-
-impl AddAssign<&Integer> for Integer {
-    #[inline]
-    fn add_assign(&mut self, other: &Integer) {
-        self.0 += &other.0;
-    }
-}
-
-impl Shr<u32> for Integer {
-    type Output = Integer;
-
-    #[inline]
-    fn shr(self, rhs: u32) -> Self::Output {
-        Integer(self.0 >> rhs as usize)
-    }
-}
-
-impl ShrAssign<u32> for Integer {
-    #[inline]
-    fn shr_assign(&mut self, rhs: u32) {
-        self.0 >>= rhs as usize;
-    }
-}
-
-impl Shl<u32> for Integer {
-    type Output = Integer;
-
-    #[inline]
-    fn shl(self, rhs: u32) -> Self::Output {
-        Integer(self.0 << rhs as usize)
-    }
-}
+bit_ops_trait_impl!(Integer, Integer, u32);
 
 impl Not for Integer {
     type Output = Integer;
@@ -211,55 +390,18 @@ impl Not for Integer {
     }
 }
 
-impl Rem for Integer {
+impl Not for &Integer {
     type Output = Integer;
 
     #[inline]
-    fn rem(self, other: Integer) -> Self::Output {
-        Integer(self.0 % other.0)
+    fn not(self) -> Self::Output {
+        Integer(!&self.0)
     }
 }
 
-impl BitAnd for Integer {
-    type Output = Integer;
+partial_eq_trait_impl!(Integer, BigInt, i64 isize i32);
 
-    #[inline]
-    fn bitand(self, other: Integer) -> Self::Output {
-        Integer(self.0 & other.0)
-    }
-}
-
-impl BitOr for Integer {
-    type Output = Integer;
-
-    #[inline]
-    fn bitor(self, other: Integer) -> Self::Output {
-        Integer(self.0 | other.0)
-    }
-}
-
-impl BitXor for Integer {
-    type Output = Integer;
-
-    #[inline]
-    fn bitxor(self, other: Integer) -> Self::Output {
-        Integer(self.0 ^ other.0)
-    }
-}
-
-impl PartialEq<i64> for Integer {
-    #[inline]
-    fn eq(&self, other: &i64) -> bool {
-        self.0 == BigInt::from(*other)
-    }
-}
-
-impl PartialOrd<i64> for Integer {
-    #[inline]
-    fn partial_cmp(&self, other: &i64) -> Option<Ordering> {
-        self.0.partial_cmp(&BigInt::from(*other))
-    }
-}
+partial_ord_trait_impl!(Integer, BigInt, i64 isize i32);
 
 impl FromStr for Integer {
     type Err = <BigInt as FromStr>::Err;
@@ -297,10 +439,10 @@ impl Rational {
         Rational(BigRational::from(BigInt::default()))
     }
 
-    #[inline]
-    pub fn from(i: Integer) -> Self {
-        Rational(BigRational::from(i.0))
-    }
+    // #[inline]
+    // pub fn from(i: Integer) -> Self {
+    //     Rational(BigRational::from(i.0))
+    // }
 
     #[inline]
     pub fn from_f64(v: f64) -> Option<Self> {
@@ -328,26 +470,109 @@ impl Rational {
     }
 
     #[inline]
+    pub fn abs_ref(&self) -> Self {
+        Rational(self.0.abs())
+    }
+
+    // TODO: Get this to work.
+    // This is a hacky solution not possible.
+    #[inline]
     pub fn fract_floor_ref(&self) -> &Self {
         panic!()
     }
 }
 
-impl Add for Rational {
-    type Output = Rational;
+/// from_trait_impl!(U, type_name, from_id, T0 T1 ... Tn);
+macro_rules! rational_from_trait_impl {
+    ($ty_for:ty, $ty_output_expr:expr, $ty_id:ident, $($t:ty)*) => ($(
+        impl From<$t> for $ty_for {
+            #[inline]
+            fn from(s: $t) -> Self {
+                $ty_output_expr($ty_id::from(BigInt::from(s)))
+            }
+        }
+    )*)
+}
 
+/*
+// The goal is to unify `rational_from_trait_impl!` and `from_trait_impl!`.
+// TODO: Research and Test.
+macro_rules! test_from_trait_impl {
+    ($ty_for:ty, $ty_output_expr:expr, $($funcs:tt)*, $($t:ty)*) => ($(
+        impl From<$t> for $ty_for {
+            #[inline]
+            fn from(s: $t) -> Self {
+                //$ty_output_expr($ty_id::from(BigInt::from(s)))
+                compose!(s; $($funcs)*)
+            }
+        }
+    )*)
+}
+
+// Source of macro compose.
+// https://play.rust-lang.org/?gist=931dd68424cf4201ea9a0655a34b49cf&version=stable&backtrace=0
+// https://users.rust-lang.org/t/implementing-function-composition/8255/5
+macro_rules! compose {
+    [$id:ident; $func:ident] => {{
+        $func($id)
+    }};
+
+    [$id:ident; $func:ident $($rest:path)*] => {{
+        $func( compose!($id; $($rest)*) )
+    }};
+}
+
+test_from_trait_impl!(Rational, Rational, BigRational::from BigInt::from, i32 isize u8 u32 usize);
+// */
+
+// From.
+rational_from_trait_impl!(Rational, Rational, BigRational, i32 isize u8 u32 usize);
+
+impl From<&Integer> for Rational {
     #[inline]
-    fn add(self, other: Rational) -> Self::Output {
-        Rational(self.0 + other.0)
+    fn from(s: &Integer) -> Self {
+        Rational(BigRational::from(s.0.clone()))
     }
 }
 
-impl PartialEq<i64> for Rational {
+impl From<&Rational> for Rational {
     #[inline]
-    fn eq(&self, other: &i64) -> bool {
-        self.0 == BigRational::from(BigInt::from(*other))
+    fn from(s: &Rational) -> Self {
+        Rational(s.0.clone())
     }
 }
+
+/// rational_partial_eq_trait_impl!(for_who, type_name, T0 T1 .. Tn);
+macro_rules! rational_partial_eq_trait_impl {
+    ($ty_for:ty, $ty_id:ident, $($t:ty)*) => ($(
+        impl PartialEq<$t> for $ty_for {
+            #[inline]
+            fn eq(&self, other: &$t) -> bool {
+                self.0 == $ty_id::from(BigInt::from(*other))
+            }
+        }
+
+        impl PartialEq<$ty_for> for $t {
+            #[inline]
+            fn eq(&self, other: &$ty_for) -> bool {
+                $ty_id::from(BigInt::from(*self)) == other.0
+            }
+        }
+    )*)
+}
+
+// PartialEq.
+rational_partial_eq_trait_impl!(Rational, BigRational, isize i32 i64);
+
+// Operation.
+ops_trait_impl_move_move!(Add, Rational, Rational, Rational, add, +, Rational);
+ops_trait_impl_move_ref!(Add, &Rational, Rational, Rational, add, +, Rational);
+
+ops_trait_impl_move_move!(Mul, Rational, Rational, Rational, mul, *, Rational);
+ops_trait_impl_move_ref!(Mul, &Rational, Rational, Rational, mul, *, Rational);
+
+ops_trait_impl_move_move!(Div, Rational, Rational, Rational, div, /, Rational);
+ops_trait_impl_ref_ref!(Div, &Rational, &Rational, Rational, div, /, Rational);
 
 impl PartialOrd<i64> for Rational {
     #[inline]
@@ -362,24 +587,6 @@ impl Neg for Rational {
     #[inline]
     fn neg(self) -> Self {
         Rational(-self.0)
-    }
-}
-
-impl Mul for Rational {
-    type Output = Rational;
-
-    #[inline]
-    fn mul(self, other: Rational) -> Self::Output {
-        Rational(self.0 * other.0)
-    }
-}
-
-impl Div for Rational {
-    type Output = Rational;
-
-    #[inline]
-    fn div(self, other: Rational) -> Self::Output {
-        Rational(self.0 / other.0)
     }
 }
 
@@ -449,14 +656,16 @@ pub mod rand {
     use super::Integer;
     use std::marker::PhantomData;
 
-    pub struct RandState<'a>{
+    pub struct RandState<'a> {
         _marker: PhantomData<&'a ()>,
     }
 
     impl<'a> RandState<'a> {
         pub fn new() -> Self {
             unsafe { libc::srand(libc::time(std::ptr::null_mut()) as _) };
-            RandState { _marker: PhantomData }
+            RandState {
+                _marker: PhantomData,
+            }
         }
 
         pub fn borrow_mut(&self) -> &Self {
@@ -469,15 +678,15 @@ pub mod rand {
         }
 
         pub fn seed(&mut self, seed: &Integer) {
-            unsafe { libc::srand(seed.to_f64() as _)}
+            unsafe { libc::srand(seed.to_f64() as _) }
         }
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use super::ops::NegAssign;
+    use super::*;
 
     #[test]
     fn bits() {
