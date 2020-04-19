@@ -357,7 +357,7 @@ macro_rules! bit_ops_trait_impl {
 
             #[inline]
             fn shl(self, rhs: $t) -> Self::Output {
-                $ty_output_expr(self.0 >> rhs as usize)
+                $ty_output_expr(self.0 << rhs as usize)
             }
         }
 
@@ -475,7 +475,7 @@ impl Rational {
     }
 
     // TODO: Get this to work.
-    // This is a hacky solution not possible.
+    // A hacky solution is not possible.
     #[inline]
     pub fn fract_floor_ref(&self) -> &Self {
         panic!()
