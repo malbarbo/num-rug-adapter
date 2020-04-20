@@ -1,6 +1,8 @@
 use num_bigint::{BigInt, ParseBigIntError};
+use num_integer::Integer as _;
 use num_rational::BigRational;
 use num_traits::{FromPrimitive, Num, Signed, ToPrimitive};
+use num_traits::identities::One;
 
 use std::cmp::Ordering;
 use std::fmt::{self, Display, Formatter};
@@ -53,13 +55,30 @@ impl Integer {
     }
 
     #[inline]
+    pub fn abs_ref(&self) -> Self {
+        Integer(self.0.abs())
+    }
+
+    #[inline]
     pub fn div_rem(&self, other: Self) -> (Self, Self) {
         let (a, b) = num_integer::Integer::div_rem(&self.0, &other.0);
         (Integer(a), Integer(b))
     }
 
     #[inline]
+    pub fn div_rem_ref(&self, other: &Self) -> (Self, Self) {
+        let (a, b) = num_integer::Integer::div_rem(&self.0, &other.0);
+        (Integer(a), Integer(b))
+    }
+
+    #[inline]
     pub fn div_rem_floor(&self, other: Self) -> (Self, Self) {
+        let (a, b) = num_integer::Integer::div_mod_floor(&self.0, &other.0);
+        (Integer(a), Integer(b))
+    }
+
+    #[inline]
+    pub fn div_rem_floor_ref(&self, other: &Self) -> (Self, Self) {
         let (a, b) = num_integer::Integer::div_mod_floor(&self.0, &other.0);
         (Integer(a), Integer(b))
     }
@@ -80,8 +99,20 @@ impl Integer {
     }
 
     #[inline]
+    pub fn gcd_ref(&self, other: &Self) -> Self {
+        Integer(num_integer::Integer::gcd(&self.0, &other.0))
+    }
+
+    #[inline]
     pub fn gcd(&self, other: &Self) -> Self {
         Integer(num_integer::Integer::gcd(&self.0, &other.0))
+    }
+}
+
+impl From<&Integer> for Integer {
+    #[inline]
+    fn from(s: &Integer) -> Self {
+        s.clone()
     }
 }
 
@@ -138,6 +169,14 @@ impl Mul<u32> for Integer {
     }
 }
 
+impl Mul<&Integer> for Integer {
+    type Output = Integer;
+
+    fn mul(self, other: &Integer) -> Self::Output {
+        Integer(self.0 * &other.0)
+    }
+}
+
 impl MulAssign<&Integer> for Integer {
     #[inline]
     fn mul_assign(&mut self, other: &Integer) {
@@ -151,6 +190,24 @@ impl Add for Integer {
     #[inline]
     fn add(self, other: Integer) -> Self::Output {
         Integer(self.0 + other.0)
+    }
+}
+
+impl Add<Integer> for &Integer {
+    type Output = Integer;
+
+    #[inline]
+    fn add(self, other: Integer) -> Self::Output {
+        Integer(&self.0 + other.0)
+    }
+}
+
+impl Add<&Integer> for Integer {
+    type Output = Integer;
+
+    #[inline]
+    fn add(self, other: &Integer) -> Self::Output {
+        Integer(self.0 + &other.0)
     }
 }
 
@@ -177,12 +234,48 @@ impl AddAssign<&Integer> for Integer {
     }
 }
 
+impl Div for Integer {
+    type Output = Integer;
+
+    #[inline]
+    fn div(self, other: Integer) -> Integer {
+        Integer(self.0 / other.0)
+    }
+}
+
+impl Div<&Integer> for Integer {
+    type Output = Integer;
+
+    #[inline]
+    fn div(self, other: &Integer) -> Integer {
+        Integer(self.0 / &other.0)
+    }
+}
+
+impl Div<Integer> for &Integer {
+    type Output = Integer;
+
+    #[inline]
+    fn div(self, other: Integer) -> Integer {
+        Integer(&self.0 / &other.0)
+    }
+}
+
 impl Shr<u32> for Integer {
     type Output = Integer;
 
     #[inline]
     fn shr(self, rhs: u32) -> Self::Output {
         Integer(self.0 >> rhs as usize)
+    }
+}
+
+impl Shr<u32> for &Integer {
+    type Output = Integer;
+
+    #[inline]
+    fn shr(self, rhs: u32) -> Self::Output {
+        Integer(&self.0 >> rhs as usize)
     }
 }
 
@@ -202,6 +295,15 @@ impl Shl<u32> for Integer {
     }
 }
 
+impl Shl<u32> for &Integer {
+    type Output = Integer;
+
+    #[inline]
+    fn shl(self, rhs: u32) -> Self::Output {
+        Integer(&self.0 << rhs as usize)
+    }
+}
+
 impl Not for Integer {
     type Output = Integer;
 
@@ -211,12 +313,48 @@ impl Not for Integer {
     }
 }
 
+impl Not for &Integer {
+    type Output = Integer;
+
+    #[inline]
+    fn not(self) -> Self::Output {
+        Integer(!&self.0)
+    }
+}
+
 impl Rem for Integer {
     type Output = Integer;
 
     #[inline]
     fn rem(self, other: Integer) -> Self::Output {
-        Integer(self.0 % other.0)
+        Integer(self.0.mod_floor(&other.0))
+    }
+}
+
+impl Rem<&Integer> for Integer {
+    type Output = Integer;
+
+    #[inline]
+    fn rem(self, other: &Integer) -> Self::Output {
+        Integer(self.0.mod_floor(&other.0))
+    }
+}
+
+impl Rem<&Integer> for &Integer {
+    type Output = Integer;
+
+    #[inline]
+    fn rem(self, other: &Integer) -> Self::Output {
+        Integer(self.0.mod_floor(&other.0))
+    }
+}
+
+impl Rem<Integer> for &Integer {
+    type Output = Integer;
+
+    #[inline]
+    fn rem(self, other: Integer) -> Self::Output {
+        Integer(self.0.mod_floor(&other.0))
     }
 }
 
@@ -225,7 +363,34 @@ impl BitAnd for Integer {
 
     #[inline]
     fn bitand(self, other: Integer) -> Self::Output {
-        Integer(self.0 & other.0)
+        Integer(self.0 & &other.0)
+    }
+}
+
+impl BitAnd<&Integer> for Integer {
+    type Output = Integer;
+
+    #[inline]
+    fn bitand(self, other: &Integer) -> Self::Output {
+        Integer(self.0 & &other.0)
+    }
+}
+
+impl BitAnd<Integer> for &Integer {
+    type Output = Integer;
+
+    #[inline]
+    fn bitand(self, other: Integer) -> Self::Output {
+        Integer(&self.0 & other.0)
+    }
+}
+
+impl BitAnd for &Integer {
+    type Output = Integer;
+
+    #[inline]
+    fn bitand(self, other: &Integer) -> Self::Output {
+        Integer(&self.0 & &other.0)
     }
 }
 
@@ -238,12 +403,73 @@ impl BitOr for Integer {
     }
 }
 
+impl BitOr<&Integer> for Integer {
+    type Output = Integer;
+
+    #[inline]
+    fn bitor(self, other: &Integer) -> Self::Output {
+        Integer(self.0 | &other.0)
+    }
+}
+
+impl BitOr<Integer> for &Integer {
+    type Output = Integer;
+
+    #[inline]
+    fn bitor(self, other: Integer) -> Self::Output {
+        Integer(&self.0 | other.0)
+    }
+}
+
+impl BitOr for &Integer {
+    type Output = Integer;
+
+    #[inline]
+    fn bitor(self, other: &Integer) -> Self::Output {
+        Integer(&self.0 | &other.0)
+    }
+}
+
 impl BitXor for Integer {
     type Output = Integer;
 
     #[inline]
     fn bitxor(self, other: Integer) -> Self::Output {
         Integer(self.0 ^ other.0)
+    }
+}
+
+impl BitXor<&Integer> for Integer {
+    type Output = Integer;
+
+    #[inline]
+    fn bitxor(self, other: &Integer) -> Self::Output {
+        Integer(self.0 ^ &other.0)
+    }
+}
+
+impl BitXor<Integer> for &Integer {
+    type Output = Integer;
+
+    #[inline]
+    fn bitxor(self, other: Integer) -> Self::Output {
+        Integer(&self.0 ^ other.0)
+    }
+}
+
+impl BitXor<&Integer> for &Integer {
+    type Output = Integer;
+
+    #[inline]
+    fn bitxor(self, other: &Integer) -> Self::Output {
+        Integer(&self.0 ^ &other.0)
+    }
+}
+
+impl PartialEq<i32> for Integer {
+    #[inline]
+    fn eq(&self, other: &i32) -> bool {
+        self.0 == BigInt::from(*other)
     }
 }
 
@@ -254,9 +480,37 @@ impl PartialEq<i64> for Integer {
     }
 }
 
+impl PartialEq<isize> for Integer {
+    #[inline]
+    fn eq(&self, other: &isize) -> bool {
+        self.0 == BigInt::from(*other)
+    }
+}
+
+impl PartialEq<Integer> for isize {
+    #[inline]
+    fn eq(&self, other: &Integer) -> bool {
+        other.0 == BigInt::from(*self)
+    }
+}
+
+impl PartialOrd<i32> for Integer {
+    #[inline]
+    fn partial_cmp(&self, other: &i32) -> Option<Ordering> {
+        self.0.partial_cmp(&BigInt::from(*other))
+    }
+}
+
 impl PartialOrd<i64> for Integer {
     #[inline]
     fn partial_cmp(&self, other: &i64) -> Option<Ordering> {
+        self.0.partial_cmp(&BigInt::from(*other))
+    }
+}
+
+impl PartialOrd<isize> for Integer {
+    #[inline]
+    fn partial_cmp(&self, other: &isize) -> Option<Ordering> {
         self.0.partial_cmp(&BigInt::from(*other))
     }
 }
@@ -298,11 +552,6 @@ impl Rational {
     }
 
     #[inline]
-    pub fn from(i: Integer) -> Self {
-        Rational(BigRational::from(i.0))
-    }
-
-    #[inline]
     pub fn from_f64(v: f64) -> Option<Self> {
         BigRational::from_f64(v).map(Rational)
     }
@@ -328,8 +577,41 @@ impl Rational {
     }
 
     #[inline]
+    pub fn abs_ref(&self) -> Self {
+        Rational(self.0.abs())
+    }
+
+    #[inline]
     pub fn fract_floor_ref(&self) -> &Self {
         panic!()
+    }
+}
+
+impl From<isize> for Rational {
+    #[inline]
+    fn from(s: isize) -> Self {
+        Rational(BigRational::new_raw(BigInt::from(s), One::one()))
+    }
+}
+
+impl From<&Integer> for Rational {
+    #[inline]
+    fn from(s: &Integer) -> Self {
+        Rational::from(s.clone())
+    }
+}
+
+impl From<&Rational> for Rational {
+    #[inline]
+    fn from(s: &Rational) -> Self {
+        s.clone()
+    }
+}
+
+impl From<Integer> for Rational {
+    #[inline]
+    fn from(i: Integer) -> Self {
+        Rational(BigRational::from(i.0))
     }
 }
 
@@ -342,6 +624,22 @@ impl Add for Rational {
     }
 }
 
+impl Add<&Rational> for Rational {
+    type Output = Rational;
+
+    #[inline]
+    fn add(self, other: &Rational) -> Self::Output {
+        Rational(self.0 + &other.0)
+    }
+}
+
+impl PartialEq<i32> for Rational {
+    #[inline]
+    fn eq(&self, other: &i32) -> bool {
+        self.0 == BigRational::from(BigInt::from(*other))
+    }
+}
+
 impl PartialEq<i64> for Rational {
     #[inline]
     fn eq(&self, other: &i64) -> bool {
@@ -349,9 +647,37 @@ impl PartialEq<i64> for Rational {
     }
 }
 
+impl PartialEq<isize> for Rational {
+    #[inline]
+    fn eq(&self, other: &isize) -> bool {
+        self == &Rational::from(*other)
+    }
+}
+
+impl PartialEq<Rational> for isize {
+    #[inline]
+    fn eq(&self, other: &Rational) -> bool {
+        other == &Rational::from(*self)
+    }
+}
+
+impl PartialOrd<isize> for Rational {
+    #[inline]
+    fn partial_cmp(&self, other: &isize) -> Option<Ordering> {
+        self.0.partial_cmp(&BigRational::from(BigInt::from(*other)))
+    }
+}
+
 impl PartialOrd<i64> for Rational {
     #[inline]
     fn partial_cmp(&self, other: &i64) -> Option<Ordering> {
+        self.0.partial_cmp(&BigRational::from(BigInt::from(*other)))
+    }
+}
+
+impl PartialOrd<i32> for Rational {
+    #[inline]
+    fn partial_cmp(&self, other: &i32) -> Option<Ordering> {
         self.0.partial_cmp(&BigRational::from(BigInt::from(*other)))
     }
 }
@@ -374,12 +700,29 @@ impl Mul for Rational {
     }
 }
 
+impl Mul<&Rational> for Rational {
+    type Output = Rational;
+
+    fn mul(self, other: &Rational) -> Self::Output {
+        Rational(self.0 * &other.0)
+    }
+}
+
 impl Div for Rational {
     type Output = Rational;
 
     #[inline]
     fn div(self, other: Rational) -> Self::Output {
         Rational(self.0 / other.0)
+    }
+}
+
+impl Div<&Rational> for &Rational {
+    type Output = Rational;
+
+    #[inline]
+    fn div(self, other: &Rational) -> Self::Output {
+        Rational(&self.0 / &other.0)
     }
 }
 
