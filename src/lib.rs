@@ -35,8 +35,18 @@ impl Integer {
     }
 
     #[inline]
+    pub fn to_u64(&self) -> Option<u64> {
+        self.0.to_u64()
+    }
+
+    #[inline]
     pub fn to_usize(&self) -> Option<usize> {
         self.0.to_usize()
+    }
+
+    #[inline]
+    pub fn to_i32(&self) -> Option<i32> {
+        self.0.to_i32()
     }
 
     #[inline]
@@ -140,6 +150,13 @@ impl From<u8> for Integer {
 impl From<u32> for Integer {
     #[inline]
     fn from(s: u32) -> Self {
+        Integer(BigInt::from(s))
+    }
+}
+
+impl From<u64> for Integer {
+    #[inline]
+    fn from(s: u64) -> Self {
         Integer(BigInt::from(s))
     }
 }
