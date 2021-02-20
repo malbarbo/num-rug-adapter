@@ -504,6 +504,13 @@ impl PartialEq<isize> for Integer {
     }
 }
 
+impl PartialEq<usize> for Integer {
+    #[inline]
+    fn eq(&self, other: &usize) -> bool {
+        self.0 == BigInt::from(*other)
+    }
+}
+
 impl PartialEq<Integer> for isize {
     #[inline]
     fn eq(&self, other: &Integer) -> bool {
@@ -528,6 +535,13 @@ impl PartialOrd<i64> for Integer {
 impl PartialOrd<isize> for Integer {
     #[inline]
     fn partial_cmp(&self, other: &isize) -> Option<Ordering> {
+        self.0.partial_cmp(&BigInt::from(*other))
+    }
+}
+
+impl PartialOrd<usize> for Integer {
+    #[inline]
+    fn partial_cmp(&self, other: &usize) -> Option<Ordering> {
         self.0.partial_cmp(&BigInt::from(*other))
     }
 }
